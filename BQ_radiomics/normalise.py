@@ -11,9 +11,9 @@ from itertools import accumulate
 from logzero import logger as logging
 import numpy as np
 import SimpleITK as sitk
-from lama.paths import specimen_iterator
-from lama import common
-from lama.registration_pipeline.validate_config import LamaConfig
+#from lama.paths import specimen_iterator
+from BQ_radiomics import common
+#from lama.registration_pipeline.validate_config import LamaConfig
 from scipy import ndimage
 
 try:
@@ -46,37 +46,6 @@ class Normaliser:
                 return IntensityN4Normalise()
         else:
             return None
-
-    def memorymap_data(self, lama_root_dir: Path) -> Dict[str, np.memmap]:
-        """
-        Iterate over output folder getting each ...........
-        Parameters
-        ----------
-        lama_root_dir
-
-        Returns
-        -------
-
-        """
-
-        imgs = OrderedDict()
-
-        for line_dir, spec_dir in specimen_iterator(lama_root_dir):
-            config_file = common.getfile_endswith('.toml')  # Get the Lama config from the specimen directory
-            config = LamaConfig(config_file)
-            reg_dir = config['root_reg_dir']
-            basename = os.path.basename(imgpath)
-            loader = common.LoadImage(imgpath)
-
-            if not loader:
-                logging.error("Problem normalising image: {}".format(loader.error_msg))
-                sys.exit()
-            arr = loader.array
-            t = tempfile.TemporaryFile()
-            m = np.memmap(t, dtype=arr.dtype, mode='w+', shape=arr.shape)
-            m[:] = arr
-            imgs[basename] = m
-        return imgs
 
     def add_reference(self, ref: np.ndarray):
         """

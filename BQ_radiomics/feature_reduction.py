@@ -163,7 +163,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
         X.drop(['Date', 'Animal_No.'], axis=1, inplace=True)
 
     else:
-        logging.info("Tumour Time!")
+        logging.info("Training to Predict Tumour Model")
         X['Tumour_Model'] = X['Tumour_Model'].map({'4T1R': 0, 'CT26R': 1}).astype(int)
         X.set_index('Tumour_Model', inplace=True)
         X.drop(['Date', 'Animal_No.'], axis=1, inplace=True)

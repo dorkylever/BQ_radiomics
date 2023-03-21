@@ -1,5 +1,5 @@
 import nrrd
-from lama import common
+from BQ_radiomics import common
 import os
 import numpy as np
 from radiomics import featureextractor
@@ -13,8 +13,8 @@ from datetime import datetime
 import sys
 import signal
 import tempfile
-from lama.monitor_memory import MonitorMemory
-from lama.img_processing import normalise
+from BQ_radiomics.monitor_memory import MonitorMemory
+from BQ_radiomics import normalise
 from scipy import ndimage
 import raster_geometry as rg
 import subprocess
@@ -93,9 +93,6 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
         # just an easy way to load the images
         extracts = [common.LoadImage(path).img for path in file_paths]
 
-    #sort file paths
-    #file_paths.sort(key=lambda x: os.path.basename(x))
-    # write to new_folder for job file / increase debugging speed
     for i, vol in enumerate(extracts):
 
         file_name = str(Path(outdir / os.path.basename(file_paths[i])))
@@ -351,19 +348,16 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
             logging.info("Extracting Inverted Labels")
             labels = extract_registrations(target_dir, labs_of_int)
 
-            if norm_label:
-                logging.info("Extracting Stage labels")
-                stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True)
-            else:
-                logging.info("Extracting Inverted Stats Masks")
-                inv_stats_masks = extract_registrations(target_dir, labs_of_int, stats_mask=True)
+
+            logging.info("Extracting Stage labels")
+            stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True)
+
 
         else: # good for debugging if normalisation stuffs up
             logging.info("loading rigids")
             rigids = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "rigids"))]
             # labels = [common.LoadImage(path) for path in common.get_file_paths(str(rad_dir / "inverted_labels"))]
-            logging.info("loading stats masks")
-            inv_stats_masks = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "stats_mask"))]
+            logging.info("loading stage_labels")
             stage_labels = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "stage_labels"))]
 
         #logging.info("Denoising")
@@ -390,11 +384,7 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                                         ref_vol_path=ref_vol_path,
                                         stage_for_ref=True, fold=fold)
             else:
-                if isinstance(meth, normalise.NonRegMaskNormalise):
-                    logging.info("Normalising based on inverted stats masks")
-                    rigids = pyr_normaliser(rad_dir, meth, scans_imgs=rigids, masks=inv_stats_masks)
-                else:
-                    rigids = pyr_normaliser(rad_dir, meth, scans_imgs=rigids, ref_vol_path=ref_vol_path)
+                rigids = pyr_normaliser(rad_dir, meth, scans_imgs=rigids, ref_vol_path=ref_vol_path)
 
 
         if isinstance(norm_method, list):

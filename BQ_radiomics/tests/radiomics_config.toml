@@ -1,0 +1,16 @@
+# Radiomics config v1 - Kyle Drover
+
+target_dir = 'E:\220204_BQ_dataset\221218_BQ_run'
+
+# labels of interest
+labs_of_int = '1'
+
+norm_methods = 'subtraction'
+
+norm_label = 'true'
+
+spherify = 0
+
+ref_vol_path = 'V:/Kyle Work/test_rad/200721_MPTLVo3_GFSeeds_4T1R_4T1R_D7_C1_002.nrrd'
+
+
