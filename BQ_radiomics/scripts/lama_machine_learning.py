@@ -6,24 +6,14 @@ from BQ_radiomics import common
 from filelock import SoftFileLock, Timeout
 import socket
 from datetime import datetime
-import sys
-import signal
 
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import  MLPClassifier
-from sklearn.metrics import accuracy_score, auc, roc_auc_score, f1_score, matthews_corrcoef, precision_score, recall_score
 
 from logzero import logger as logging
 from pathlib import Path
 import pandas as pd
 import os
-
-#from mpi4py import MPI
 import sys
 
-from joblib import Parallel, delayed
 
 JOBFILE_NAME = 'ml_jobs.csv'
 
@@ -34,9 +24,9 @@ def make_ml_jobs_file(jobs_file: Path, file_paths: list):
 
     Parameters
     ----------
-    jobfile_path: Path to save job file to
-    root_dir: the root project directory
-    is_mutants: if True search the folder for individual line sub folders
+    jobs_file: Path to save job file to
+    Path: the root project directory
+
 
     """
     # output_dir = root_dir / 'radiomics_output'
@@ -57,7 +47,7 @@ def make_ml_jobs_file(jobs_file: Path, file_paths: list):
 
 
 def ml_job_runner(org_dir):
-    '''i
+    '''
     Performs the pyradiomic calculations
 
 

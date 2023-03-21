@@ -15,7 +15,7 @@ import numpy as np
 from pathlib import Path
 # from itertools import product
 import pandas as pd
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 # from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, f1_score, recall_score, matthews_corrcoef, make_scorer
 from sklearn.pipeline import Pipeline
 from imblearn.over_sampling import SMOTE

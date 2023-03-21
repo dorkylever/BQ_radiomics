@@ -32,9 +32,8 @@ except ImportError:
 import yaml
 import toml
 
-from lama.img_processing import read_minc
-from lama.elastix import RESOLUTION_IMGS_DIR, IMG_PYRAMID_DIR
-import lama
+
+import BQ_radiomics
 INDV_REG_METADATA = 'reg_metadata.yaml'
 
 LOG_FILE = 'LAMA.log'
@@ -49,7 +48,7 @@ ORGAN_VOLUME_CSV_FILE = 'organ_volumes.csv'
 STAGING_INFO_FILENAME = 'staging_info_volume.csv'
 FOLDING_FILE_NAME = 'folding_report.csv'
 
-lama_root_dir = Path(lama.__file__).parent
+lama_root_dir = Path(BQ_radiomics.__file__).parent
 
 
 class CheckSinglePathAction(argparse.Action):
@@ -75,64 +74,6 @@ def date_dhm() -> datetime.datetime:
     """
     return datetime.datetime.now().replace(second=0, microsecond=0)
 
-
-class RegistrationException(Exception):
-    """
-    An exception that is raised when the current process (inversion, stats etc cannot complete due to problems with the
-    data
-    """
-    pass
-
-
-class TransformixException(Exception):
-    pass
-
-
-class LamaDataException(Exception):
-    """
-    An exception that is raised when the current process (inversion, stats etc cannot complete due to problems with the
-    data
-    """
-    pass
-
-
-def disable_warnings_in_docker():
-    """
-    If running in a Docker container, switch off warnings as we are getting cython warnings coming from sklearn and pandas etc.
-    If running in Docker, there will be a lama forlder in the root directory
-    """
-
-    if os.path.isdir(os.path.join(os.sep, 'lama')):
-
-        print('Lama running in docker')
-
-        import warnings
-        warnings.filterwarnings('ignore')
-
-
-def excepthook_overide(exctype, value, traceback):
-    """
-    Used to override sys.excepthook so we can log any ancaught Exceptions
-
-    Parameters
-    ----------
-    exctype
-    value
-    traceback
-
-    Returns
-    -------
-
-    """
-
-    logging.exception(''.join(format_exception(exctype, value, traceback)))
-    logging.warn(('#'*30))
-
-    if isinstance(exctype, type(LamaDataException)):
-        logging.warn('Lama encountered a problem with reading or interpreting some data. Please check the log files')
-    else:
-        logging.warn('Lama encountered an unknown problem. Please check the log files')
-    sys.exit()
 
 
 def command_line_agrs():
@@ -176,10 +117,6 @@ class LoadImage(object):
         return self.img.GetDirection()
 
     def _read(self):
-
-        if self.img_path.endswith('.mnc'):
-            array = read_minc.mincstats_to_numpy(self.img_path)
-            self.img = sitk.GetImageFromArray(array) # temp
 
         if os.path.isfile(self.img_path):
             try:
@@ -552,8 +489,6 @@ def get_inputs_from_file_list(file_list_path, config_dir):
             if line.startswith('dir:'):
                 root = abspath(join(config_dir, line.strip('dir:').strip()))
                 continue
-            if not root:
-                raise LamaDataException
 
             base = line.strip()
             root_path_dict[root].append(base)
