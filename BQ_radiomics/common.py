@@ -223,10 +223,6 @@ def check_labels_file(labelmap_file, label_info_file):
         return False
 
 
-def plot_swarm():
-    pass
-
-
 def pad(array, dims):
     """
     TODO: Finish
@@ -417,9 +413,6 @@ def mkdir_if_not_exists(dir_: Union[str, Path]):
     dir_ = Path(dir_)
     if not Path(dir_).is_dir():
         dir_.mkdir(parents=True)
-
-def get_images_ignore_elx_itermediates(*args, **kwargs) -> Union[List[str], List[Path]]:
-    return get_file_paths(*args, ignore_folders=[RESOLUTION_IMGS_DIR, IMG_PYRAMID_DIR], **kwargs)
 
 
 def get_file_paths(folder: Union[str, Path], extension_tuple=('.nrrd', '.tiff', '.tif', '.nii', '.bmp', 'jpg', 'mnc', 'vtk', 'bin', 'npy'),
@@ -810,27 +803,7 @@ def csv_read_dict(path):
     return lines
 
 
-def gather_rad_data(_dir):
-    file_names = [spec for spec in get_file_paths(folder=_dir, extension_tuple=".csv")]
-    file_names.sort()
-    data = [pd.read_csv(spec, index_col=0).dropna(axis=1) for spec in file_names]
-    abnormal_embs = ['22300_e8', '22300_e6', '50_e5']
-    for i, df in enumerate(data):
-        df.index.name = 'org'
-        df.name = str(file_names[i]).split(".")[0].split("/")[-1]
-        df['genotype'] = 'HET' if 'het' in str(file_names[i]) else 'WT'
-        df['background'] = 'C57BL6N' if (('b6ku' in str(file_names[i])) | ('BL6' in str(file_names[i]))) else \
-            'F1' if ('F1' in str(file_names[i])) else 'C3HHEH'
-        df['HPE'] = 'abnormal' if any(map(str(file_names[i]).__contains__, abnormal_embs)) else 'normal'
-    data = pd.concat(data,
-                     ignore_index=False, keys=[os.path.splitext(os.path.basename(spec))[0] for spec in file_names],
-                     names=['specimen', 'org'])
 
-    line_file = _dir.parent / "full_results.csv"
-    org_dir = _dir.parent / "organs"
-    os.makedirs(org_dir, exist_ok=True)
-    for org in data.index.get_level_values('org').unique():
-        data[data.index.get_level_values('org') == org].to_csv(str(org_dir) + "/results_" + str(org) + ".csv")
 
 
 
@@ -919,27 +892,6 @@ def strip_img_extension(file_name):
 #     with open(dir_ /  name, 'w') as fh:
 #         fh.write(msg)
 
-def test_installation(app):
-    try:
-        sub.check_output([app])
-    except Exception as e:  # can't seem to log CalledProcessError
-        logging.error('It looks like {} may not be installed on your system\n'.format(app))
-        return False
-    else:
-        return True
-
-
-def is_r_installed():
-    installed = True
-    FNULL = open(os.devnull, 'w')
-    try:
-        sub.call(['Rscript'], stdout=FNULL, stderr=sub.STDOUT)
-    except sub.CalledProcessError:
-        installed = False
-    except OSError:
-        installed = False
-        logging.warn('R or Rscript not installed. Will not be able to use linear model')
-    return installed
 
 
 def service_shutdown(signum, frame):
@@ -1044,21 +996,3 @@ def cfg_load(cfg) -> Dict:
 
     else:
         raise ValueError('Config file should end in .toml or .yaml')
-
-
-def bytesToGb(numberOfBytes, precision = 3):
-    return round(numberOfBytes / (1024 ** 3), precision)
-    
-def logMemoryUsageInfo():
-    proc = psutil.Process(os.getpid())
-    
-    procMemInfo = proc.memory_info()
-    globalMemInfo = psutil.virtual_memory()
-
-    totalMem = bytesToGb(globalMemInfo.total, 5)
-    totalMemAvailable = bytesToGb(globalMemInfo.available, 5)
-    procMemRSS = bytesToGb(procMemInfo.rss, 5)
-    procMemVMS = bytesToGb(procMemInfo.vms, 5)
-    procMemData = bytesToGb(procMemInfo.data, 5)
-    
-    logging.info(f"Memory: Process Resident: {procMemRSS}, Process Virtual: {procMemVMS}, Process data: {procMemData}.  Total Available: {totalMemAvailable}")

@@ -2,12 +2,12 @@ Metadata-Version: 2.1
 Name: bq-radiomics
 Version: 0.0.1
 Summary: Perform Radiomics Feature Extraction and Machine Learning
-Home-page: https://github.com/mpi2/BQ_radiomics
+Home-page: https://github.com/dorkylever/BQ_radiomics
 Author: Kyle Drover
 Author-email: kyle.drover@anu.edu.au
 License: UNKNOWN
 Download-URL: https://github.com/dorkylever/BQ_radiomics/archive/refs/tags/0.0.1.tar.gz
-Keywords: image processing,bioinformatics,phenotype
+Keywords: radiomics
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License

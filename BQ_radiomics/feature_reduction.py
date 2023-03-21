@@ -31,7 +31,7 @@ from sklearn.model_selection import KFold
 
 def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9, org=None):
     """
-    identifies correlated features in  a
+    identifies correlated features in  a dataset and chucks out the right-most feature.
 
     Parameters
     ----------
@@ -70,7 +70,7 @@ def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9
 
 def shap_feature_ranking(data, shap_values, columns=[]):
     """
-    From stack-overflow, return columns
+    From stack-overflow, return columns ranked by shap value
     """
     if not columns: columns = data.columns.tolist()  # If columns are not given, take all columns
 
@@ -95,29 +95,13 @@ def shap_feature_ranking(data, shap_values, columns=[]):
 
 def shap_feat_select(X, shap_importance, _dir, n_feats: list, cut_off: float = -1, n_feat_cutoff: float = None, org: int = None):
     """
-
+    Just gets all features with a SHAP value above a cutoff (cut_off) on the n_highest ranked features (n_feat_cutoff)
     """
     # m = RandomForestClassifier(n_jobs=-1, n_estimators=100, verbose=0, oob_score=True)
 
     org_dir = _dir / str(org)
 
     os.makedirs(org_dir, exist_ok=True)
-
-    # print("plotting intrinsic RF rank")
-    # importances = m.feature_importances_
-    # indices = np.argsort(importances)
-    # features = X.columns
-    # plt.title('Feature Importances')
-    # plt.figure(figsize=(15,200))
-    # plt.rc('ytick', labelsize=6)
-    # plt.barh(range(len(indices)), importances[indices], color='b', align='center')
-    # plt.yticks(range(len(indices)), [features[i] for i in indices])
-    # plt.xlabel('Relative Importance')
-    # plt.tight_layout()
-    # plt.savefig(str(cut_off_dir)+"/rf_rank.png")
-    # plt.close()
-
-    # explainer = shap.KernelExplainer(m.predict, X, verbose=False)
 
     # Get the top N featues (n_feat_cutoff and plot)
     if n_feat_cutoff:
@@ -171,22 +155,8 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
     logging.info("Starting")
 
-    # X = X[X['org']== org]
 
-    if org:
-        #X['condition']= X['genotype'] + "_" + X['background']
-
-        #X['condition'] = X['condition'].map({'WT_C57BL6N': 0,'WT_C3HHEH': 0, 'HET_C3HHEH': 0,'HET_C57BL6N': 1, 'WT_F1': 0, 'HET_F1': 0})
-
-        #X.set_index('condition', inplace=True)
-
-        X['HPE'] = X['HPE'].map({'normal': 0, 'abnormal': 1}).astype(int)
-        X.set_index('HPE', inplace=True)
-        #X = X[X['background'] == 'C3HHEH']
-        #X['genotype'] = X['genotype'].map({'WT': 0, 'HET': 1}).astype(int)
-        #X.set_index('genotype', inplace=True)
-
-    elif batch_test:
+    if batch_test:
         X = X[(X['Age'] == 'D14') & (X['Tumour_Model'] == '4T1R')]
         X['Exp'] = X['Exp'].map({'MPTLVo4': 0, 'MPTLVo7': 1})
         X.set_index('Exp', inplace=True)
