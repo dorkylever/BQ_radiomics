@@ -931,3 +931,30 @@ def cfg_load(cfg) -> Dict:
 
     else:
         raise ValueError('Config file should end in .toml or .yaml')
+
+
+def gather_rad_data(_dir):
+    file_names = [spec for spec in get_file_paths(folder=_dir, extension_tuple=".csv")]
+    file_names.sort()
+
+    data = [pd.read_csv(spec, index_col=0).dropna(axis=1) for spec in file_names]
+
+    data = pd.concat(
+        data,
+        ignore_index=False, keys=[os.path.splitext(os.path.basename(spec))[0] for spec in file_names],
+        names=['specimen', 'label'])
+
+    data['specimen'] = data.index.get_level_values('specimen')
+
+    _metadata = data['specimen'].str.split('_', expand=True)
+
+    _metadata.columns = ['Date', 'Exp', 'Contour_Method', 'Tumour_Model', 'Position', 'Age',
+                         'Cage_No.', 'Animal_No.']
+
+    _metadata.reset_index(inplace=True, drop=True)
+    data.reset_index(inplace=True, drop=True)
+    features = pd.concat([_metadata, data], axis=1)
+
+    features.index.name = 'scanID'
+
+    features.to_csv(str(_dir.parent / "full_results.csv"))
