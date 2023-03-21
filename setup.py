@@ -64,19 +64,8 @@ setup(
     keywords=['radiomics'],
     entry_points ={
             'console_scripts': [
-                'BQ_radiomics_reg=BQ_radiomics.scripts.BQ_radiomics_reg:main',
-                'BQ_radiomics_get_test_data=BQ_radiomics.scripts.BQ_radiomics_get_test_data:main',
-                'BQ_radiomics_get_walkthrough_data=BQ_radiomics.scripts.BQ_radiomics_get_walkthrough_data:main',
-                'BQ_radiomics_job_runner=BQ_radiomics.scripts.BQ_radiomics_job_runner:main',
-                'BQ_radiomics_permutation_stats=BQ_radiomics.scripts.BQ_radiomics_permutation_stats:main',
-                'BQ_radiomics_stats=BQ_radiomics.scripts.BQ_radiomics_stats:main',
-                'BQ_radiomics_pad_volumes=BQ_radiomics.utilities.BQ_radiomics_pad_volumes:main',
-                'BQ_radiomics_convert_16_to_8=BQ_radiomics.utilities.BQ_radiomics_convert_16_to_8:main',
-                'BQ_radiomics_img_info=BQ_radiomics.utilities.BQ_radiomics_img_info:main',
-                'BQ_radiomics_ark_imp_pro=BQ_radiomics.scripts.BQ_radiomics_ark_img_pro:main',
-                'BQ_radiomics_radiomics_runner=BQ_radiomics.scripts.BQ_radiomics_radiomics_runner:main',
-                'BQ_radiomics_two_way_plotter=BQ_radiomics.scripts.two_way_plotter:main',
-                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.BQ_radiomics_machine_learning:main'
+                'BQ_radiomics_radiomics_runner=BQ_radiomics.scripts.lama_radiomics_runner:main',
+                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.lama_machine_learning:main'
             ]
         },
 )
