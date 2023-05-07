@@ -12,4 +12,3 @@ BQ_radiomics_radiomics_runner = BQ_radiomics.scripts.BQ_radiomics_radiomics_runn
 BQ_radiomics_reg = BQ_radiomics.scripts.BQ_radiomics_reg:main
 BQ_radiomics_stats = BQ_radiomics.scripts.BQ_radiomics_stats:main
 BQ_radiomics_two_way_plotter = BQ_radiomics.scripts.two_way_plotter:main
-
