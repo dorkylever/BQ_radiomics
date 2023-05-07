@@ -90,15 +90,11 @@ def shap_feature_ranking(data, shap_values, columns=[]):
     return df_ranking
 
 
-def shap_feat_select(X, shap_importance, _dir, n_feats: list, cut_off: float = -1, n_feat_cutoff: float = None, org: int = None):
+def shap_feat_select(X, shap_importance, _dir, n_feats: list, cut_off: float = -1, n_feat_cutoff: float = None):
     """
     Just gets all features with a SHAP value above a cutoff (cut_off) on the n_highest ranked features (n_feat_cutoff)
     """
     # m = RandomForestClassifier(n_jobs=-1, n_estimators=100, verbose=0, oob_score=True)
-
-    org_dir = _dir / str(org)
-
-    os.makedirs(org_dir, exist_ok=True)
 
     # Get the top N featues (n_feat_cutoff and plot)
     if n_feat_cutoff:
@@ -147,12 +143,8 @@ def smote_oversampling(X, k: int = 6, max_non_targets: int = 300):
 
 
 def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.DataFrame = None, test_size: float = 0.2):
-    logging.info("Doing org: {}".format(org))
-
 
     logging.info("Starting")
-
-
     if batch_test:
         X = X[(X['Age'] == 'D14') & (X['Tumour_Model'] == '4T1R')]
         X['Exp'] = X['Exp'].map({'MPTLVo4': 0, 'MPTLVo7': 1})
@@ -182,7 +174,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
     X_to_test = X
 
 
-    org_dir = rad_file_path.parent / str(org)
+    org_dir = rad_file_path.parent
 
 
 
@@ -242,10 +234,6 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
                                custom_loss=['AUC', 'Accuracy', 'Precision', 'F1', 'Recall'],
                                verbose=500)
 
-        m2 = CatBoostClassifier(iterations=1000, task_type="GPU", train_dir=str(model_dir),
-                                custom_loss=['Accuracy', 'Precision', 'F1', 'Recall'],
-                                verbose=500)
-
         # optimise via grid search
         params = {
             'depth': [4, 6, 10],
@@ -276,7 +264,6 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
         # sample 20 different train-test partitions (train size of 0.2) and create an average model
 
         m_results = pd.DataFrame(columns=['branch_count', 'results'])
-        m2_results = pd.DataFrame(columns=['branch_count', 'results'])
 
 
         for j in range(10):
@@ -313,21 +300,13 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
             # tests GPU training
             # TODO: remove if useless
 
-            m2.fit(train_pool, eval_set=validation_pool, verbose=False)
-            logging.info("Eval GPU: Number of trees {}, best_scores {}".format(m2.tree_count_, m2.get_best_score()))
-
-            m2_results.loc[j] = [m2.tree_count_, m2.get_best_score()['validation']]
 
             logging.info("Saving models")
             m_filename = str(rad_file_path.parent) + "/" + str(org) + "/CPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
 
-            m2_filename = str(rad_file_path.parent) + "/" + str(org) + "/GPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
-
             m.save_model(m_filename)
-            m2.save_model(m2_filename)
 
             models.append(m)
-            models.append(m2)
             if isinstance(complete_dataset, pd.DataFrame):
                 break
 
@@ -337,7 +316,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
         m_results.to_csv(str(rad_file_path.parent) + "/" + str(org) + "/CPU_results_" + str(x.shape[1]) + ".csv")
         m_avg = sum_models(models, weights=[1.0 / len(models)] * len(models))
 
-        avrg_filename = str(rad_file_path.parent) + "/" + str(org) + '/GPU_results_' + str(x.shape[1]) + ".cbm"
+        avrg_filename = str(rad_file_path.parent) + "/" + str(org) + '/CPU_results_' + str(x.shape[1]) + ".cbm"
 
         m_avg.save_model(avrg_filename)
 
@@ -348,7 +327,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
     if n_sampler:
-        n_fractions = list(np.arange(0.2, 1.2, 0.2))
+        n_fractions = list(np.arange(0.2, 1.1, 0.1))
 
         # remove comments to turn on a
         # complete_dataset = X.copy()
@@ -367,10 +346,18 @@ def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
             #we just need to offer a fake file path so all files are created under n_dir
             n_path = n_dir / "fake_file.csv"
 
+            x_train, x_test, y_train, y_test = train_test_split(X, X.index.to_numpy(), test_size=n)
+            x_train.to_csv(str(n_dir/"train")+str(n)+".csv")
+
+            x_test.to_csv(str(n_dir / "test") + str(n) + ".csv")
+
+            x = X.loc[y_train]
+
+
             #X_sub = X.groupby('Tumour_Model').apply(lambda x: x.sample(int(n)))
             #X_sub.to_csv(str(n_dir/ "sampled_dataset.csv"))
             #TODO see if this needs parallelising
-            run_feat_red(X, org=None, rad_file_path=n_path, batch_test=batch_test, test_size = n)
+            run_feat_red(x, org=None, rad_file_path=n_path, batch_test=batch_test)
 
     else:
         run_feat_red(X, org=org, rad_file_path=rad_file_path, batch_test=batch_test)

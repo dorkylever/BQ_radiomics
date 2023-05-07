@@ -65,7 +65,8 @@ setup(
     entry_points ={
             'console_scripts': [
                 'BQ_radiomics_runner=BQ_radiomics.scripts.lama_radiomics_runner:main',
-                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.lama_machine_learning:main'
+                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.lama_machine_learning:main',
+                'BQ_radiomics_secondary_validation=BQ_radiomics.scripts.confusion_matrix_generator:main'
             ]
         },
 )
