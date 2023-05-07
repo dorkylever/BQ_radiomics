@@ -29,7 +29,7 @@ from sklearn.model_selection import KFold
 
 
 
-def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9, org=None):
+def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9):
     """
     identifies correlated features in  a dataset and chucks out the right-most feature.
 
@@ -37,9 +37,6 @@ def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9
     ----------
     dataset: pandas dataframem
     """
-    if org:
-        _dir = _dir / str(org)
-        os.makedirs(_dir, exist_ok=True)
 
     col_corr = set()  # Set of all the names of correlated columns
     corr_matrix = dataset.corr(method="spearman")
@@ -175,7 +172,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
     # lets remove correlated variables
 
-    corr_feats = correlation(X, rad_file_path.parent, 0.9, org=org)
+    corr_feats = correlation(X, rad_file_path.parent, 0.9)
 
     logging.info('{}: {}'.format("Number of features removed due to correlation", len(set(corr_feats))))
 
@@ -206,16 +203,8 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
     shap_importance = shap_feature_ranking(X, shap_values)
 
 
-    if org:
-        n_feats = []
-        shap_cut_offs = list(np.arange(0.000, 2.5, 0.025))
-        full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n_feats, cut_off=cut_off, org=org) for cut_off in
-                  shap_cut_offs]
-        full_X = [X for X in full_X if X is not None]
-        full_X = [X for X in full_X if (X.shape[1] > 0 & X.shape[1] < 200)]
-    else:
-        n_feats = list(np.arange(1, 29, 1))
-        full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n, org=org) for n in n_feats]
+    n_feats = list(np.arange(1, 29, 1))
+    full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n, org=org) for n in n_feats]
 
 
     # should be a better way but she'll do
