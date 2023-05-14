@@ -9,9 +9,9 @@ exec(open(version_file).read())
 
 
 setup(
-    name='bq_radiomics',
+    name='bq-radiomics',
     download_url=f'https://github.com/dorkylever/BQ_radiomics/archive/refs/tags/0.0.1.tar.gz',
-    version="0.0.1",
+    version="0.0.2",
     packages=find_packages(exclude=("dev")),
     package_data={},  # Puts it in the wheel dist. MANIFEST.in gets it in source dist
     include_package_data=True,
@@ -64,8 +64,9 @@ setup(
     keywords=['radiomics'],
     entry_points ={
             'console_scripts': [
-                'BQ_radiomics_radiomics_runner=BQ_radiomics.scripts.lama_radiomics_runner:main',
-                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.lama_machine_learning:main'
+                'BQ_radiomics_runner=BQ_radiomics.scripts.lama_radiomics_runner:main',
+                'BQ_radiomics_machine_learning=BQ_radiomics.scripts.lama_machine_learning:main',
+                'BQ_radiomics_secondary_validation=BQ_radiomics.scripts.confusion_matrix_generator:main'
             ]
         },
 )
