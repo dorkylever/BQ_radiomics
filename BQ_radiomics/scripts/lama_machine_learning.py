@@ -158,9 +158,16 @@ def ml_job_runner(org_dir):
     logging.info('Exiting job_runner')
     return True
 
+def main(indir, make_job_file):
+    _dir = Path(args.indirs)
+    if args.make_org_files:
+        common.gather_rad_data(_dir)
+    else:
+        ml_job_runner(_dir)
 
-def main():
+if __name__ == '__main__':
     import argparse
+
     parser = argparse.ArgumentParser("Run Catboost models for prediction")
     parser.add_argument('-i', '--input_file', dest='indirs', help='radiomics file', required=True,
                         type=str)
@@ -168,12 +175,6 @@ def main():
                         help='Run with this option to split the full into organs',
                         action='store_true', default=False)
     args = parser.parse_args()
-    _dir = Path(args.indirs)
-    if args.make_org_files:
-        common.gather_rad_data(_dir)
-
-    else:
-        ml_job_runner(_dir)
-
-if __name__ == '__main__':
-    main()
+    indir = args.indirs
+    make_job_file = args.make_org_files
+    main(indir, make_job_file)

@@ -14,7 +14,8 @@ import pytest
 import numpy as np
 from BQ_radiomics import feature_reduction
 from BQ_radiomics.scripts import lama_machine_learning
-
+import subprocess
+import BQ_radiomics
 
 
 def test_radiomics():
@@ -261,6 +262,23 @@ def test_BQ_concat_batch():
     features = features[features.columns.drop(list(features.filter(regex="diagnostics")))]
     features.drop(["scanID"], axis=1, inplace=True)
     feature_reduction.main(features, org = None, rad_file_path = Path(_dir.parent / "full_results.csv"), batch_test=True)
+
+
+def test_catboost_plots():
+    RSCRIPT_DIR = Path(BQ_radiomics.__file__).parent / "scripts" / "catboost_test.R"
+    _file = "E:/220204_BQ_dataset/scans_for_sphere_creation/sphere_15_res/test_size_0.2/None/sphere_15_corrected.csv"
+
+    output = subprocess.check_output(["Rscript", str(RSCRIPT_DIR), "--input_file", _file], universal_newlines=True)
+
+
+    print(eval(output.strip()))
+    logloss_nfeats, logloss_score, acc_nfeats, acc_score = eval(output.strip())
+
+    # Print the unpacked variables
+    print("Log Loss - nfeats:", logloss_nfeats)
+    print("Log Loss - score:", logloss_score)
+    print("Accuracy - nfeats:", acc_nfeats)
+    print("Accuracy - score:", acc_score)
 
 
 @pytest.mark.skip

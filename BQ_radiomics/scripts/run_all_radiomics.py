@@ -28,17 +28,6 @@ def n_feat_res_combined(_dir):
     cv_data = pd.concat(cross_folds)
     return cv_data
 
-def call_r_script(input_file):
-    r_script = "rscript_wrapper.sh"
-
-    # Construct the command to call the shell script with arguments
-    command = ["./" + r_script, input_file]
-
-    # Execute the command and capture the output
-    output = subprocess.check_output(command, universal_newlines=True)
-
-    nfeats_from_logloss, nfeats_from_accuracy = output
-    return nfeats_from_logloss, nfeats_from_accuracy
 
 def main():
     import argparse
@@ -66,6 +55,8 @@ def main():
     # this should generate the main script
     lama_machine_learning.main(indirs=_dir, make_job_file=True)
 
+    lama_machine_learning.main(indirs=_dir, make_job_file=False)
+
     out_dir = _dir / "test_size_0.2" / "None"
 
     cv_data = n_feat_res_combined(out_dir)
@@ -74,28 +65,25 @@ def main():
 
     cv_data.to_csv(out_file)
 
-    #so let's call the R stuff:
+    #so let's call the R stuff - to plot the training cruve:
+
+    output = subprocess.check_output(["Rscript", str(RSCRIPT_DIR), "--input_file", out_file], universal_newlines=True)
 
 
-    best_nfeats_logloss, best_nfeats_acc = call_r_script(out_file)
+    logloss_nfeats, logloss_score, acc_nfeats, acc_score = eval(output.strip())
 
 
 
     # so the results file should be generated
     validation_file = _dir / "radiomics_output" / "test_size_0.2" / "test.csv"
 
+    #load the catboost model
 
 
+    model_path = _dir / "radiomics_output" / "test_size_0.2" /  f"combined_results_{str(logloss_nfeats)}.csv"
 
 
-
-
-
-    lama_machine_learning.main(indirs=_dir, make_job_file=False)
-
-
-
-    confusion_matrix_generator.main(vfile=validation_iles)
+    confusion_matrix_generator.main(vfile=validation_file,model_file=model_path)
 
 
 if __name__ == '__main__':
