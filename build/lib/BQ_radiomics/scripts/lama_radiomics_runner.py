@@ -1,9 +1,9 @@
-from lama.lama_radiomics.radiomics import radiomics_job_runner
+from BQ_radiomics.radiomics import radiomics_job_runner
 import pandas as pd
 import logging
 from pathlib import Path
-from lama.common import cfg_load
-from lama.img_processing import normalise
+from BQ_radiomics.common import cfg_load
+from BQ_radiomics import normalise
 
 
 def main():
@@ -68,3 +68,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print("Hooly")

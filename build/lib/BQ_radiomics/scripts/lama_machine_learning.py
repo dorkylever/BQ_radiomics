@@ -161,7 +161,7 @@ def ml_job_runner(org_dir):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser("Run RF models for prediction")
+    parser = argparse.ArgumentParser("Run Catboost models for prediction")
     parser.add_argument('-i', '--input_file', dest='indirs', help='radiomics file', required=True,
                         type=str)
     parser.add_argument('-m', '--make_org_files', dest='make_org_files',

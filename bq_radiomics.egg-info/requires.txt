@@ -31,3 +31,4 @@ wheel
 numexpr
 bottleneck
 cuda-python==11.8.1
+rpy2
