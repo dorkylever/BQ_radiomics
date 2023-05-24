@@ -23,7 +23,7 @@ import subprocess
 JOBFILE_NAME = 'radiomics_jobs.csv'
 
 
-def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fnames = None, stats_mask: bool=False):
+def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fnames = None, stats_mask: bool=False, query_name=None):
     '''
 
     either extracts the rigid registrations (i.e. the volumes)
@@ -44,10 +44,10 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
 
     if labs_of_interest:
         # save to label folder
-
         outdir_string = "stage_labels" if norm_label else "stats_mask" if stats_mask else "inverted_labels"
-        query_string = 'inverted_stats_mask' if stats_mask else outdir_string
-
+        # lets users find provide a specific name
+        query_string = 'inverted_stats_mask' if stats_mask else query_name if query_name else outdir_string
+        print(query_string)
         outdir = rad_dir / outdir_string
         os.makedirs(outdir, exist_ok=True)
 
@@ -66,6 +66,11 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
 
 
         for i, path in enumerate(file_paths):
+
+            #assert that the file exists
+
+            assert os.path.exists(path), f"File '{path}' does not exist. Check your radiomics config"
+
             # clean label_files to only contain orgs of interest
             label = common.LoadImage(path).img
 
@@ -86,8 +91,11 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
         outdir = rad_dir / "rigids"
         os.mkdir(outdir)
 
-        reg_paths = [spec_path for spec_path in common.get_file_paths(root_dir) if ('registrations' in str(spec_path))]
-        file_paths = [spec_path for spec_path in reg_paths if ('rigid' in str(spec_path))]
+        if query_name:
+            file_paths = [spec_path for spec_path in common.get_file_paths(root_dir) if (query_name in str(spec_path))]
+        else:
+            reg_paths = [spec_path for spec_path in common.get_file_paths(root_dir) if ('registrations' in str(spec_path))]
+            file_paths = [spec_path for spec_path in reg_paths if ('rigid' in str(spec_path))]
 
 
         # just an easy way to load the images
@@ -153,7 +161,6 @@ def denoise(images):
 
 
         #cropped_img.CopyInformation(img)
-        logging.info("PIZZA TIME!")
         images[i] = denoise.Execute(img_to_denoise).CopyInformation(img)
     return images
 
@@ -205,7 +212,7 @@ def pyr_normaliser(_dir, _normaliser, scans_imgs, masks: list = None, fold: bool
 
 def pyr_calc_all_features(img, lab, name, labs_of_int, spherify=None):
     full_results = pd.Series([])
-    #lab.CopyInformation(img)
+    lab.CopyInformation(img)
 
     arr = sitk.GetArrayFromImage(lab)
 
@@ -312,6 +319,9 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                          norm_method=normalise.IntensityN4Normalise(),
                          norm_label=None, spherify=None,
                          ref_vol_path=None,
+                         scan_dir_name=None,
+                         contour_dir_name=None,
+                         stage_label_name=None,
                          make_job_file: bool=False, fold: bool=False):
     '''
     Performs the pyradiomic calculations
@@ -343,14 +353,14 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
         # extract the registrations if the job file doesn't exist and normalise
         if not os.path.exists(str(rad_dir)):
             os.makedirs(rad_dir, exist_ok=True)
-            logging.info("Extracting Rigids")
-            rigids = extract_registrations(target_dir)
-            logging.info("Extracting Inverted Labels")
-            labels = extract_registrations(target_dir, labs_of_int)
+            logging.info("Extracting Scans")
+            rigids = extract_registrations(target_dir,  query_name=scan_dir_name)
+            logging.info("Extracting Inverted Label")
+            labels = extract_registrations(target_dir, labs_of_int, query_name=contour_dir_name)
 
 
             logging.info("Extracting Stage labels")
-            stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True)
+            stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True, query_name=stage_label_name)
 
 
         else: # good for debugging if normalisation stuffs up

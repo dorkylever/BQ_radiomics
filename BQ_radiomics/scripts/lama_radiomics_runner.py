@@ -19,13 +19,19 @@ def main(config, make_job_file):
 
         norm_methods = [c.get('norm_methods')]
 
-        print("from c.get", norm_methods)
+        scan_dir_name = c.get('scan_dir')
+
+        stage_label_name = c.get('stage_dir')
+
+        contour_dir_name = c.get('tumour_dir')
 
         norm_label = c.get('norm_label')
 
         spherify = c.get('spherify')
 
         fold = c.get('fold')
+
+
 
         ref_vol_path = Path(c.get('ref_vol_path')) if c.get('ref_vol_path') is not None else None
 
@@ -46,9 +52,10 @@ def main(config, make_job_file):
             norm_meths = None
         logging.info("Starting Radiomics")
 
-        print(norm_meths)
+
         radiomics_job_runner(target_dir, labs_of_int=labs_of_int, norm_method=norm_meths, spherify=spherify,
-                             ref_vol_path=ref_vol_path, norm_label=norm_label, make_job_file=make_job_file, fold=fold)
+                             ref_vol_path=ref_vol_path, norm_label=norm_label, make_job_file=make_job_file, fold=fold,
+                             stage_label_name=stage_label_name, contour_dir_name=contour_dir_name, scan_dir_name=scan_dir_name)
     except pd.errors.EmptyDataError as e:
         logging.exception(f'pandas read failure {e}')
 

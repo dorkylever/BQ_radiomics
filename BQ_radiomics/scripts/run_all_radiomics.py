@@ -53,9 +53,9 @@ def main():
     Parallel(n_jobs=-1)(delayed(run_lama_radiomics)() for _ in range(num_jobs))
 
     # this should generate the main script
-    lama_machine_learning.main(indirs=_dir, make_job_file=True)
+    lama_machine_learning.main(indir=_dir, make_job_file=True)
 
-    lama_machine_learning.main(indirs=_dir, make_job_file=False)
+    lama_machine_learning.main(indir=_dir, make_job_file=False)
 
     out_dir = _dir / "test_size_0.2" / "None"
 
@@ -80,7 +80,7 @@ def main():
     #load the catboost model
 
 
-    model_path = _dir / "radiomics_output" / "test_size_0.2" /  f"combined_results_{str(logloss_nfeats)}.csv"
+    model_path = _dir / "radiomics_output" / "test_size_0.2" /  f"combined_results_{str(logloss_nfeats)}.cbm"
 
 
     confusion_matrix_generator.main(vfile=validation_file,model_file=model_path)
