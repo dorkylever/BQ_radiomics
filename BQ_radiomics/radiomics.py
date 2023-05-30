@@ -41,6 +41,8 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
     '''
     rad_dir = root_dir / "radiomics_output"
     os.makedirs(rad_dir, exist_ok=True)
+    logging.info(f"saving to base dir: {rad_dir}")
+
 
     if labs_of_interest:
         # save to label folder
@@ -55,7 +57,7 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
         file_paths = [spec_path for spec_path in common.get_file_paths(root_dir) if
                       (query_string in str(spec_path))]
 
-        logging.info(rad_dir)
+        logging.info(f"number of files: {len(file_paths)}")
 
         #file_paths.sort(key=lambda x: os.path.basename(x))
 
@@ -69,7 +71,7 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
 
             #assert that the file exists
 
-            assert os.path.exists(path), f"File '{path}' does not exist. Check your radiomics config"
+            assert os.path.exists(path), f"File '{path}' does not exist. Check your radiomics config."
 
             # clean label_files to only contain orgs of interest
             label = common.LoadImage(path).img
@@ -97,7 +99,7 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
             reg_paths = [spec_path for spec_path in common.get_file_paths(root_dir) if ('registrations' in str(spec_path))]
             file_paths = [spec_path for spec_path in reg_paths if ('rigid' in str(spec_path))]
 
-
+        logging.info(f"number of files: {len(file_paths)}")
         # just an easy way to load the images
         extracts = [common.LoadImage(path).img for path in file_paths]
 
@@ -349,19 +351,22 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
     lock_file = jobs_file_path.with_suffix('.lock')
     lock = SoftFileLock(lock_file)
 
-    if make_job_file:
+
+    if make_job_file and not os.path.exists(jobs_file_path):
+
         # extract the registrations if the job file doesn't exist and normalise
         if not os.path.exists(str(rad_dir)):
             os.makedirs(rad_dir, exist_ok=True)
-            logging.info("Extracting Scans")
-            rigids = extract_registrations(target_dir,  query_name=scan_dir_name)
-            logging.info("Extracting Inverted Label")
-            labels = extract_registrations(target_dir, labs_of_int, query_name=contour_dir_name)
 
+            logging.info("Extracting Scans")
+            rigids = extract_registrations(target_dir, query_name=scan_dir_name)
 
             logging.info("Extracting Stage labels")
             stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True, query_name=stage_label_name)
 
+
+            logging.info("Extracting Inverted Label")
+            labels = extract_registrations(target_dir, labs_of_int, query_name=contour_dir_name)
 
         else: # good for debugging if normalisation stuffs up
             logging.info("loading rigids")
@@ -383,8 +388,6 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
         #    logging.info("Writing: {}".format(rigid_paths[i]))
         #    sitk.WriteImage(vol, rigid_paths[i], useCompression=True)
 
-
-
         # Normalisation should be here!!!!
         logging.info("Normalising Intensities")
 
@@ -396,14 +399,11 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
             else:
                 rigids = pyr_normaliser(rad_dir, meth, scans_imgs=rigids, ref_vol_path=ref_vol_path)
 
-
         if isinstance(norm_method, list):
             for meth in norm_method:
                 prepare_norm(meth, rigids)
         else:
             prepare_norm(norm_method, rigids)
-
-
 
         logging.info("Writing Normalised Rigids")
         rigid_paths = [common.LoadImage(path).img_path for path in common.get_file_paths(str(rad_dir / "rigids"))]
@@ -418,7 +418,9 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
         make_rad_jobs_file(jobs_file_path, rigid_paths)
         logging.info("Job_file_created")
         return True
-
+    elif make_job_file and os.path.exists(jobs_file_path):
+        logging.warning("Make Job file was specified but the jobs file was already created - This is only OK if you're running from run_all_radiomics")
+        return True
     #df_jobs = pd.read_csv(jobs_file_path, index_col=0)
 
     # execute parallelisation:
@@ -427,6 +429,7 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
             with lock.acquire(timeout=60):
 
                 df_jobs = pd.read_csv(jobs_file_path, index_col=0)
+                logging.info(df_jobs)
                 # Get an unfinished job
                 jobs_to_do = df_jobs[df_jobs['status'] == 'to_run']
                 if len(jobs_to_do) < 1:
@@ -463,6 +466,7 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                 df_jobs.to_csv(jobs_file_path)
 
         except Timeout:
+            logging.error('The .lock file was not acquired within 60 seconds of the run. Try deleting the .lock file if this occurs multiple times')
             sys.exit('Timed out' + socket.gethostname())
 
         # try:
@@ -477,9 +481,7 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                 sys.exit('Exiting')
 
             status = 'failed'
-            print(e)
             logging.exception(e)
-
 
         else:
             status = 'complete'
@@ -492,4 +494,7 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                 df_jobs.to_csv(jobs_file_path)
 
     logging.info('Exiting job_runner')
+    print("Hooly")
     return True
+
+

@@ -155,7 +155,8 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
     else:
         logging.info("Training to Predict Tumour Model")
-        X['Tumour_Model'] = X['Tumour_Model'].map({'4T1R': 0, 'CT26R': 1}).astype(int)
+        print(X.columns)
+        X['Tumour_Model'] = X['Tumour_Model'].str.contains('4T1').map({True: 0, False: 1}).astype(int)
         X.set_index('Tumour_Model', inplace=True)
         X.drop(['Date', 'Animal_No.'], axis=1, inplace=True)
 
@@ -198,7 +199,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
     n_feats = list(np.arange(1, 29, 1))
-    full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n, org=org) for n in n_feats]
+    full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n) for n in n_feats]
 
 
     # should be a better way but she'll do

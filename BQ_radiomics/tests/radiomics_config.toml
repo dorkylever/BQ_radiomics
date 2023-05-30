@@ -14,8 +14,8 @@ norm_label = true
 ref_vol_path = 'E:\220204_BQ_dataset\scans_for_sphere_creation\radiomics_output\rigids\200721_MPTLVo3_CT_4T1_Ms_D7_C1_002.nrrd'
 
 
-stage_dir = 'stage_labels'
+stage_dir = 'my_stage_labels'
 
-scan_dir = 'imgs'
+scan_dir = 'my_imgs'
 
 tumour_dir = 'sphere_15'

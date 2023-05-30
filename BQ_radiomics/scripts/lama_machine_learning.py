@@ -66,6 +66,7 @@ def ml_job_runner(org_dir):
     # get org csv files
 
     org_dir = Path(org_dir)
+
     names = common.get_file_paths(org_dir, extension_tuple=".csv")
 
     jobs_file_path = org_dir / JOBFILE_NAME
@@ -133,7 +134,7 @@ def ml_job_runner(org_dir):
             # BQ data should have no 'org' info
             features = org_df
             features = features[features.columns.drop(list(features.filter(regex="diagnostics")))]
-            features.drop(["scanID"], axis=1, inplace=True)
+            #features.drop(["scanID"], axis=1, inplace=True)
             feature_reduction.main(features, org=None, rad_file_path=Path(org_dir.parent / "full_results.csv"))
 
         # perform feature reduction on a single organ
@@ -159,8 +160,10 @@ def ml_job_runner(org_dir):
     return True
 
 def main(indir, make_job_file):
-    _dir = Path(args.indirs)
-    if args.make_org_files:
+    _dir = Path(indir)
+
+    print(_dir)
+    if make_job_file:
         common.gather_rad_data(_dir)
     else:
         ml_job_runner(_dir)
@@ -177,4 +180,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     indir = args.indirs
     make_job_file = args.make_org_files
+
     main(indir, make_job_file)

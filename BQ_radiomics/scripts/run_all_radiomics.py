@@ -1,3 +1,5 @@
+from logzero import logger as logging
+
 import pandas as pd
 
 from BQ_radiomics.scripts import lama_radiomics_runner, lama_machine_learning, confusion_matrix_generator
@@ -41,21 +43,39 @@ def main():
     args = parser.parse_args()
 
     _dir = Path(args.indirs)
-
+    logging.info("Making job file")
     lama_radiomics_runner.main(config=args.config, make_job_file=True)
 
-    num_jobs=10
+
+    #lama_radiomics_runner.main(config=args.config, make_job_file=False)
+
+
+
+    num_jobs=4
+    logging.info(f"running with {num_jobs} jobs")
     # Execute the function in parallel using joblib
-    def run_lama_radiomics():
+    def run_lama_radiomics(i):
+        logging.info(f"running job {i}")
         lama_radiomics_runner.main(config=args.config, make_job_file=False)
 
     # Execute the function in parallel using joblib
-    Parallel(n_jobs=-1)(delayed(run_lama_radiomics)() for _ in range(num_jobs))
+    #class JobRunnerExit(Exception):
+    #    pass
+    Parallel(n_jobs=-1)(delayed(run_lama_radiomics)(i) for i in range(num_jobs))
+
+    #except JobRunnerExit:
+    #    logging.info("Finished Script")
+
+    logging.info("radiomics have been generated, running ml")
 
     # this should generate the main script
-    lama_machine_learning.main(indir=_dir, make_job_file=True)
+    feat_dir = _dir / "radiomics_output" / "features"
 
-    lama_machine_learning.main(indir=_dir, make_job_file=False)
+    rad_out_dir = _dir / "radiomics_output"
+
+    lama_machine_learning.main(indir=feat_dir, make_job_file=True)
+
+    lama_machine_learning.main(indir=rad_out_dir, make_job_file=False)
 
     out_dir = _dir / "test_size_0.2" / "None"
 
