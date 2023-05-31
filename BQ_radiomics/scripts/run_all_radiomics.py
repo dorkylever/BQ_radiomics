@@ -77,7 +77,7 @@ def main():
 
     lama_machine_learning.main(indir=rad_out_dir, make_job_file=False)
 
-    out_dir = _dir / "test_size_0.2" / "None"
+    out_dir = _dir / "test_size_0.2"
 
     cv_data = n_feat_res_combined(out_dir)
 
@@ -95,7 +95,7 @@ def main():
 
 
     # so the results file should be generated
-    validation_file = _dir / "radiomics_output" / "test_size_0.2" / "test.csv"
+    validation_file = _dir / "radiomics_output" / "test_size_0.2" / "test_0.2.csv"
 
     #load the catboost model
 

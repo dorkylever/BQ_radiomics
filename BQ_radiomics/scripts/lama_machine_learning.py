@@ -69,13 +69,15 @@ def ml_job_runner(org_dir):
 
     names = common.get_file_paths(org_dir, extension_tuple=".csv")
 
+    fnames = [name for name in names if str(name).__contains__('results')]
+
     jobs_file_path = org_dir / JOBFILE_NAME
     lock_file = jobs_file_path.with_suffix('.lock')
     lock = SoftFileLock(lock_file)
 
     if not os.path.exists(jobs_file_path):
         logging.info("Creating a job-file for ml")
-        make_ml_jobs_file(jobs_file_path, names)
+        make_ml_jobs_file(jobs_file_path, fnames)
         logging.info("Job_file_created")
 
     df_jobs = pd.read_csv(jobs_file_path, index_col=0)
@@ -95,13 +97,21 @@ def ml_job_runner(org_dir):
                     # get last job and check start-time
                     fin_jobs = df_jobs[df_jobs['status'] == 'complete']
                     running_jobs = df_jobs[df_jobs['status'] == 'running']
-                    fin_indx = fin_jobs.index[-1]
-                    fin_t = fin_jobs.at[fin_indx, 'start_time']
-                    fin_time = datetime.strptime(fin_t, '%Y-%m-%d %H:%M:%S')
-                    run_t = running_jobs['start_time']
-                    run_times = [datetime.strptime(t, '%Y-%m-%d %H:%M:%S') < fin_time for t in run_t]
-                    hung_jobs = running_jobs[run_times]
 
+                    if len(fin_jobs) > 0:
+                        # use the last time the finished job started. If jobs started after this one but are still
+                        # running, they're likely hung
+                        fin_indx = fin_jobs.index[-1]
+                        fin_t = fin_jobs.at[fin_indx, 'start_time']
+                        fin_time = datetime.strptime(fin_t, '%Y-%m-%d %H:%M:%S')
+                        run_t = running_jobs['start_time']
+                        run_times = [datetime.strptime(t, '%Y-%m-%d %H:%M:%S') < fin_time for t in run_t]
+                        hung_jobs = running_jobs[run_times]
+                    elif len(running_jobs.index) == 1:
+                        # if there's only a single job hung jobs are running jobs
+                        hung_jobs = running_jobs
+                    else:
+                        hung_jobs = None
 
                     if len(hung_jobs) > 0:
                         logging.info("Hung jobs found - rerunning")

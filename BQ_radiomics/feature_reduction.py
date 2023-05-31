@@ -248,11 +248,13 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
         #logging.info("grid search: Number of trees {}, best_scores {}".format(m.tree_count_, m.get_best_score()))
 
-        loo = KFold(n_splits=all_x.num_row(), shuffle=True, random_state=42)
+        #  split the data into k-folds where k is number of counts in the minority group.
+
+        loo = KFold(n_splits= min(len(x.index[x.index == 0]), len(x.index[x.index == 1])), shuffle=True, random_state=42)
 
         cv_data = cv(params=m.get_params(),
                      pool=all_x,
-                     fold_count=int(loo.get_n_splits()/2),
+                     fold_count=int(loo.get_n_splits()),
                      shuffle=True,
                      stratified=True,
                      verbose=500,
@@ -305,7 +307,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
             logging.info("Saving models")
-            m_filename = str(rad_file_path.parent) + "/" + str(org) + "/CPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
+            m_filename = str(rad_file_path.parent)  + "/CPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
 
             m.save_model(m_filename)
 
@@ -316,10 +318,10 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
         logging.info("Combining model predictions into one mega model")
 
-        m_results.to_csv(str(rad_file_path.parent) + "/" + str(org) + "/CPU_results_" + str(x.shape[1]) + ".csv")
+        m_results.to_csv(str(rad_file_path.parent) + "/CPU_results_" + str(x.shape[1]) + ".csv")
         m_avg = sum_models(models, weights=[1.0 / len(models)] * len(models))
 
-        avrg_filename = str(rad_file_path.parent) + "/" + str(org) + '/CPU_results_' + str(x.shape[1]) + ".cbm"
+        avrg_filename = str(rad_file_path.parent)  + '/CPU_results_' + str(x.shape[1]) + ".cbm"
 
         m_avg.save_model(avrg_filename)
 
@@ -328,9 +330,9 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
 
-def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
+def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= True):
     if n_sampler:
-        n_fractions = list(np.arange(0.2, 1.1, 0.1))
+        n_fractions = list(np.arange(0.2, 0.9, 0.1))
 
         # remove comments to turn on a
         # complete_dataset = X.copy()
@@ -350,9 +352,9 @@ def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
             n_path = n_dir / "fake_file.csv"
 
             x_train, x_test, y_train, y_test = train_test_split(X, X.index.to_numpy(), test_size=n)
-            x_train.to_csv(str(n_dir/"train")+str(n)+".csv")
+            x_train.to_csv(str(n_dir/"train_")+str(n)+".csv")
 
-            x_test.to_csv(str(n_dir / "test") + str(n) + ".csv")
+            x_test.to_csv(str(n_dir / "test_") + str(n) + ".csv")
 
             x = X.loc[y_train]
 

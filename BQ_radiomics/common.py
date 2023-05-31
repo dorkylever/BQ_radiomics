@@ -956,7 +956,6 @@ def gather_rad_data(_dir):
     _metadata.columns = ['Date', 'Exp', 'Contour_Method', 'Tumour_Model', 'Position', 'Age',
                          'Cage_No.', 'Animal_No.']
 
-    print(_metadata)
 
     mask = _metadata['Position'] != 'Ms'
 
@@ -968,9 +967,6 @@ def gather_rad_data(_dir):
 
     _metadata.loc[mask, 'Position'] = 'Ms'
 
-
-
-    print(_metadata)
 
     _metadata.reset_index(inplace=True, drop=True)
     data.reset_index(inplace=True, drop=True)
