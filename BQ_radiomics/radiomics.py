@@ -41,7 +41,7 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
     '''
     rad_dir = root_dir / "radiomics_output"
     os.makedirs(rad_dir, exist_ok=True)
-    logging.info(f"saving to base dir: {rad_dir}")
+
 
 
     if labs_of_interest:
@@ -49,8 +49,10 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
         outdir_string = "stage_labels" if norm_label else "stats_mask" if stats_mask else "inverted_labels"
         # lets users find provide a specific name
         query_string = 'inverted_stats_mask' if stats_mask else query_name if query_name else outdir_string
-        print(query_string)
+
         outdir = rad_dir / outdir_string
+        logging.info(f"saving to base dir: {outdir}")
+
         os.makedirs(outdir, exist_ok=True)
 
         # extract the inverted labels of interest
@@ -72,9 +74,15 @@ def extract_registrations(root_dir, labs_of_interest=None, norm_label=None,  fna
             #assert that the file exists
 
             assert os.path.exists(path), f"File '{path}' does not exist. Check your radiomics config."
+            print("path: ", path)
+
 
             # clean label_files to only contain orgs of interest
             label = common.LoadImage(path).img
+
+            print(common.LoadImage(path))
+            print("label", common.LoadImage(path).img)
+
 
             label_arr = sitk.GetArrayFromImage(label)
             t = tempfile.TemporaryFile()
@@ -358,22 +366,26 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
         if not os.path.exists(str(rad_dir)):
             os.makedirs(rad_dir, exist_ok=True)
 
-            logging.info("Extracting Scans")
-            rigids = extract_registrations(target_dir, query_name=scan_dir_name)
-
             logging.info("Extracting Stage labels")
             stage_labels = extract_registrations(target_dir, labs_of_int, norm_label=True, query_name=stage_label_name)
-
 
             logging.info("Extracting Inverted Label")
             labels = extract_registrations(target_dir, labs_of_int, query_name=contour_dir_name)
 
+
+
+            logging.info("Extracting Scans")
+            rigids = extract_registrations(target_dir, query_name=scan_dir_name)
+
+
         else: # good for debugging if normalisation stuffs up
             logging.info("loading rigids")
-            rigids = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "rigids"))]
-            # labels = [common.LoadImage(path) for path in common.get_file_paths(str(rad_dir / "inverted_labels"))]
             logging.info("loading stage_labels")
             stage_labels = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "stage_labels"))]
+
+            rigids = [common.LoadImage(path).img for path in common.get_file_paths(str(rad_dir / "rigids"))]
+            # labels = [common.LoadImage(path) for path in common.get_file_paths(str(rad_dir / "inverted_labels"))]
+
 
         #logging.info("Denoising")
 
@@ -494,7 +506,6 @@ def radiomics_job_runner(target_dir, labs_of_int=None,
                 df_jobs.to_csv(jobs_file_path)
 
     logging.info('Exiting job_runner')
-    print("Hooly")
     return True
 
 

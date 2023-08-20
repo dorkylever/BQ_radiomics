@@ -169,12 +169,19 @@ def ml_job_runner(org_dir):
     logging.info('Exiting job_runner')
     return True
 
-def main(indir, make_job_file):
+def main(indir, make_job_file, adjacent_dir: str=None):
     _dir = Path(indir)
+
 
     print(_dir)
     if make_job_file:
         common.gather_rad_data(_dir)
+        if adjacent_dir:
+            logging.info("Normalising to adjacent area")
+            tumour_dataset = pd.read_csv(str(_dir.parent / "full_results.csv"))
+            non_tumour_dataset = pd.read_csv(str(Path(adjacent_dir) / "full_results.csv"))
+            normed_dataset = feature_reduction.non_tum_normalise(tumour_dataset, non_tumour_dataset)
+            normed_dataset.to_csv(str(_dir.parent / "normed_results.csv"))
     else:
         ml_job_runner(_dir)
 
