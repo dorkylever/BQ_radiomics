@@ -9,8 +9,8 @@ exec(open(version_file).read())
 
 
 setup(
-    name='bq-radiomics',
-    download_url=f'https://github.com/dorkylever/BQ_radiomics/archive/refs/tags/0.0.1.tar.gz',
+    name='BQ-radiomics',
+    download_url=f'https://github.com/dorkylever/BQ_radiomics.git',
     version="0.0.2",
     packages=find_packages(exclude=("dev")),
     package_data={},  # Puts it in the wheel dist. MANIFEST.in gets it in source dist
@@ -19,7 +19,6 @@ setup(
         'appdirs',
         'setuptools==59.8.0',
         'matplotlib>=2.2.0',
-        'numpy==1.21.5',
         'pandas>=1.1.0',
         'scikit-learn==1.0.2',
         'scipy>=1.1.0',
