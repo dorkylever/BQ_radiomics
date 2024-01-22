@@ -66,7 +66,10 @@ def ml_job_runner(org_dir):
     # get org csv files
 
     org_dir = Path(org_dir)
+
     names = common.get_file_paths(org_dir, extension_tuple=".csv")
+
+    fnames = [name for name in names if str(name).__contains__('results')]
 
     jobs_file_path = org_dir / JOBFILE_NAME
     lock_file = jobs_file_path.with_suffix('.lock')
@@ -74,7 +77,7 @@ def ml_job_runner(org_dir):
 
     if not os.path.exists(jobs_file_path):
         logging.info("Creating a job-file for ml")
-        make_ml_jobs_file(jobs_file_path, names)
+        make_ml_jobs_file(jobs_file_path, fnames)
         logging.info("Job_file_created")
 
     df_jobs = pd.read_csv(jobs_file_path, index_col=0)
@@ -94,13 +97,21 @@ def ml_job_runner(org_dir):
                     # get last job and check start-time
                     fin_jobs = df_jobs[df_jobs['status'] == 'complete']
                     running_jobs = df_jobs[df_jobs['status'] == 'running']
-                    fin_indx = fin_jobs.index[-1]
-                    fin_t = fin_jobs.at[fin_indx, 'start_time']
-                    fin_time = datetime.strptime(fin_t, '%Y-%m-%d %H:%M:%S')
-                    run_t = running_jobs['start_time']
-                    run_times = [datetime.strptime(t, '%Y-%m-%d %H:%M:%S') < fin_time for t in run_t]
-                    hung_jobs = running_jobs[run_times]
 
+                    if len(fin_jobs) > 0:
+                        # use the last time the finished job started. If jobs started after this one but are still
+                        # running, they're likely hung
+                        fin_indx = fin_jobs.index[-1]
+                        fin_t = fin_jobs.at[fin_indx, 'start_time']
+                        fin_time = datetime.strptime(fin_t, '%Y-%m-%d %H:%M:%S')
+                        run_t = running_jobs['start_time']
+                        run_times = [datetime.strptime(t, '%Y-%m-%d %H:%M:%S') < fin_time for t in run_t]
+                        hung_jobs = running_jobs[run_times]
+                    elif len(running_jobs.index) == 1:
+                        # if there's only a single job hung jobs are running jobs
+                        hung_jobs = running_jobs
+                    else:
+                        hung_jobs = None
 
                     if len(hung_jobs) > 0:
                         logging.info("Hung jobs found - rerunning")
@@ -133,7 +144,7 @@ def ml_job_runner(org_dir):
             # BQ data should have no 'org' info
             features = org_df
             features = features[features.columns.drop(list(features.filter(regex="diagnostics")))]
-            features.drop(["scanID"], axis=1, inplace=True)
+            #features.drop(["scanID"], axis=1, inplace=True)
             feature_reduction.main(features, org=None, rad_file_path=Path(org_dir.parent / "full_results.csv"))
 
         # perform feature reduction on a single organ
@@ -158,22 +169,33 @@ def ml_job_runner(org_dir):
     logging.info('Exiting job_runner')
     return True
 
+def main(indir, make_job_file, adjacent_dir: str=None):
+    _dir = Path(indir)
 
-def main():
+
+    print(_dir)
+    if make_job_file:
+        common.gather_rad_data(_dir)
+        if adjacent_dir:
+            logging.info("Normalising to adjacent area")
+            tumour_dataset = pd.read_csv(str(_dir.parent / "full_results.csv"))
+            non_tumour_dataset = pd.read_csv(str(Path(adjacent_dir) / "full_results.csv"))
+            normed_dataset = feature_reduction.non_tum_normalise(tumour_dataset, non_tumour_dataset)
+            normed_dataset.to_csv(str(_dir.parent / "normed_results.csv"))
+    else:
+        ml_job_runner(_dir)
+
+if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser("Run RF models for prediction")
+
+    parser = argparse.ArgumentParser("Run Catboost models for prediction")
     parser.add_argument('-i', '--input_file', dest='indirs', help='radiomics file', required=True,
                         type=str)
     parser.add_argument('-m', '--make_org_files', dest='make_org_files',
                         help='Run with this option to split the full into organs',
                         action='store_true', default=False)
     args = parser.parse_args()
-    _dir = Path(args.indirs)
-    if args.make_org_files:
-        common.gather_rad_data(_dir)
+    indir = args.indirs
+    make_job_file = args.make_org_files
 
-    else:
-        ml_job_runner(_dir)
-
-if __name__ == '__main__':
-    main()
+    main(indir, make_job_file)

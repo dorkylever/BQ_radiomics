@@ -24,9 +24,34 @@ from imblearn.pipeline import Pipeline
 # import statistics
 import seaborn as sns
 from collections import Counter
-
+from BQ_radiomics import common
 from sklearn.model_selection import KFold
 
+
+def non_tum_normalise(tum_dataset: pd.DataFrame, non_tum_dataset: pd.DataFrame):
+    #do an assertion between tumour and non_tumour sizes and IDs
+
+    assert tum_dataset.index.equals(non_tum_dataset.index) and tum_dataset.columns.equals(non_tum_dataset.columns)
+
+    # separate datasets into numeric and non-numeric data
+    tum_num_met = tum_dataset.loc[:, ['Date', 'Animal_No.']]
+    tum_numeric = tum_dataset.select_dtypes(include=[np.number]).drop(['Date', 'Animal_No.'], axis=1)
+    tum_non_numeric = tum_dataset.select_dtypes(exclude=[np.number])
+    non_tum_numeric = non_tum_dataset.select_dtypes(include=[np.number]).drop(['Date', 'Animal_No.'], axis=1)
+    non_tum_non_numeric = non_tum_dataset.select_dtypes(exclude=[np.number])
+
+    # divide numeric values from tum_dataset by non_tum_dataset - store the result
+    result_numeric = tum_numeric / non_tum_numeric
+
+    # combine the non-numeric dataset from tum_dataset and the result
+    result = pd.concat([tum_non_numeric, result_numeric, tum_num_met], axis=1)
+
+    result = result[tum_dataset.columns]
+    result = result.loc[tum_dataset.index]
+    # ensure that row and col order is maintained
+    assert result.index.equals(tum_dataset.index) and result.columns.equals(tum_dataset.columns)
+
+    return result
 
 
 def correlation(dataset: pd.DataFrame, _dir: Path = None, threshold: float = 0.9):
@@ -149,13 +174,14 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
         X = X[(X['Age'] == 'D14') & (X['Tumour_Model'] == '4T1R')]
         X['Exp'] = X['Exp'].map({'MPTLVo4': 0, 'MPTLVo7': 1})
         X.set_index('Exp', inplace=True)
-        X.drop(['Date', 'Animal_No.'], axis=1, inplace=True)
+        X.drop(['Date', 'Animal_No.','scanID'], axis=1, inplace=True)
 
     else:
         logging.info("Training to Predict Tumour Model")
-        X['Tumour_Model'] = X['Tumour_Model'].map({'4T1R': 0, 'CT26R': 1}).astype(int)
+        print(X.columns)
+        X['Tumour_Model'] = X['Tumour_Model'].str.contains('4T1').map({True: 0, False: 1}).astype(int)
         X.set_index('Tumour_Model', inplace=True)
-        X.drop(['Date', 'Animal_No.'], axis=1, inplace=True)
+        X.drop(['Date', 'Animal_No.', 'scanID'], axis=1, inplace=True)
 
     X = X.select_dtypes(include=np.number)
 
@@ -183,7 +209,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
     n_test = X[X.index == 1].shape[0]
 
-    X = smote_oversampling(X, n_test) if n_test < 5 else smote_oversampling(X)
+    X = smote_oversampling(X, n_test) if n_test <= 5 else smote_oversampling(X)
 
     logging.info("fitting model to training data")
     m = CatBoostClassifier(iterations=1000, task_type='GPU', verbose=250, train_dir=org_dir)
@@ -196,7 +222,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
     n_feats = list(np.arange(1, 29, 1))
-    full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n, org=org) for n in n_feats]
+    full_X = [shap_feat_select(X, shap_importance,rad_file_path.parent, n_feats=n, n_feat_cutoff=n) for n in n_feats]
 
 
     # should be a better way but she'll do
@@ -214,8 +240,6 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
         plt.savefig(str(org_dir / str(n)) + "/shap_feat_rank_plot.png")
 
         plt.close()
-
-
 
 
     logging.info("n_feats: {}".format(n_feats))
@@ -245,11 +269,13 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
         #logging.info("grid search: Number of trees {}, best_scores {}".format(m.tree_count_, m.get_best_score()))
 
-        loo = KFold(n_splits=all_x.num_row(), shuffle=True, random_state=42)
+        #  split the data into k-folds where k is number of counts in the minority group.
+
+        loo = KFold(n_splits= min(len(x.index[x.index == 0]), len(x.index[x.index == 1])), shuffle=True, random_state=42)
 
         cv_data = cv(params=m.get_params(),
                      pool=all_x,
-                     fold_count=int(loo.get_n_splits()/2),
+                     fold_count=int(loo.get_n_splits()),
                      shuffle=True,
                      stratified=True,
                      verbose=500,
@@ -258,6 +284,25 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
                      return_models=False)
 
         cv_filename = str(model_dir) + "/" + "cross_fold_results.csv"
+
+        best_iteration = cv_data['test-Accuracy-mean'].idxmax()
+
+        cv_model = CatBoostClassifier(
+            iterations=best_iteration,
+            task_type="CPU",
+            loss_function='Logloss',
+            train_dir=str(model_dir),
+            custom_loss=['AUC', 'Accuracy', 'Precision', 'F1', 'Recall'],
+            verbose=500
+        )
+
+        cv_model.fit(all_x)
+
+        cv_mod_filename = str(model_dir) + "/cv_" + str(x.shape[1]) + ".cbm"
+
+        cv_model.save_model(cv_mod_filename)
+
+
 
         logging.info("saving cv results to {}".format(cv_filename))
         cv_data.to_csv(cv_filename)
@@ -302,7 +347,7 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
             logging.info("Saving models")
-            m_filename = str(rad_file_path.parent) + "/" + str(org) + "/CPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
+            m_filename = str(rad_file_path.parent)  + "/CPU_" + str(x.shape[1]) + "_" + str(j) + ".cbm"
 
             m.save_model(m_filename)
 
@@ -313,10 +358,10 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
         logging.info("Combining model predictions into one mega model")
 
-        m_results.to_csv(str(rad_file_path.parent) + "/" + str(org) + "/CPU_results_" + str(x.shape[1]) + ".csv")
+        m_results.to_csv(str(rad_file_path.parent) + "/CPU_results_" + str(x.shape[1]) + ".csv")
         m_avg = sum_models(models, weights=[1.0 / len(models)] * len(models))
 
-        avrg_filename = str(rad_file_path.parent) + "/" + str(org) + '/CPU_results_' + str(x.shape[1]) + ".cbm"
+        avrg_filename = str(rad_file_path.parent)  + '/CPU_results_' + str(x.shape[1]) + ".cbm"
 
         m_avg.save_model(avrg_filename)
 
@@ -325,9 +370,9 @@ def run_feat_red(X, org, rad_file_path, batch_test=None, complete_dataset: pd.Da
 
 
 
-def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
+def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= True):
     if n_sampler:
-        n_fractions = list(np.arange(0.2, 1.1, 0.1))
+        n_fractions = list(np.arange(0.2, 0.9, 0.1))
 
         # remove comments to turn on a
         # complete_dataset = X.copy()
@@ -339,7 +384,7 @@ def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
         # sample_sizes = [np.round(X.groupby('Tumour_Model').count().to_numpy().min() * n, 0) for n in n_fractions]
 
         for i, n in enumerate(n_fractions):
-            n_dir = rad_file_path.parent / ("test_size_" + str(n))
+            n_dir = rad_file_path.parent / 'radiomics_output' / ("test_size_" + str(n))
             os.makedirs(n_dir, exist_ok=True)
 
 
@@ -347,9 +392,9 @@ def main(X, org, rad_file_path, batch_test=None, n_sampler: bool= False):
             n_path = n_dir / "fake_file.csv"
 
             x_train, x_test, y_train, y_test = train_test_split(X, X.index.to_numpy(), test_size=n)
-            x_train.to_csv(str(n_dir/"train")+str(n)+".csv")
+            x_train.to_csv(str(n_dir/"train_")+str(n)+".csv")
 
-            x_test.to_csv(str(n_dir / "test") + str(n) + ".csv")
+            x_test.to_csv(str(n_dir / "test_") + str(n) + ".csv")
 
             x = X.loc[y_train]
 

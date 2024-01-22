@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: bq-radiomics
-Version: 0.0.1
+Version: 0.0.2
 Summary: Perform Radiomics Feature Extraction and Machine Learning
 Home-page: https://github.com/dorkylever/BQ_radiomics
 Author: Kyle Drover
