@@ -53,4 +53,3 @@ toml
 tqdm
 gitpython
 pytest
-cuda-python==11.8.1
