@@ -1,0 +1,6 @@
+# Python build / packaging artifacts (generated - never commit)
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
