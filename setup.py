@@ -17,7 +17,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'appdirs',
-        'setuptools',
+        'setuptools<81',  # setuptools 81+ removed pkg_resources, which pacmap 0.7.0 imports
         'matplotlib>=2.2.0',
         'numpy>=1.23,<2',
         'pandas>=1.1.0',
