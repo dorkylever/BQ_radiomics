@@ -1,0 +1,56 @@
+# Full scientific stack for the BQ_radiomics container, baked into the image at
+# build time. Every entry resolves to a prebuilt manylinux wheel for CPython 3.9,
+# so there is no source compilation. numpy is held < 2 (see pip-constraints.txt)
+# because numba and the pyradiomics 3.1.0 wheel are not numpy-2 compatible.
+#
+# This mirrors setup.py's install_requires; the editable `pip install -e .` at
+# container-create time then just links the local package (deps already present).
+
+appdirs
+setuptools
+wheel
+
+# Core numerical / scientific stack
+numpy>=1.23,<2
+scipy>=1.1.0
+pandas>=1.1.0
+scikit-learn
+scikit-image
+numba
+numexpr
+bottleneck
+
+# Imaging / radiomics
+SimpleITK
+pyradiomics==3.1.0
+pynrrd
+raster-geometry
+
+# Plotting
+matplotlib>=2.2.0
+seaborn>=0.9.0
+plotly
+
+# ML utilities
+catboost
+imbalanced-learn
+threadpoolctl
+shap
+joblib
+pacmap==0.7.0
+umap-learn
+
+# Jupyter kernel (so the container is usable as a notebook kernel)
+ipykernel
+
+# Misc runtime deps
+PyYAML>=3.13
+filelock
+psutil
+logzero==1.7.0
+addict
+toml
+tqdm
+gitpython
+pytest
+cuda-python==11.8.1

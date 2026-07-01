@@ -1,0 +1,25 @@
+{
+  "name": "BQ Radiomics",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  // The validation data lives outside the repo, so bind-mount it into the
+  // container at /data/BQ_validation. Adjust the source path if the data moves.
+  "mounts": [
+    "source=C:/Users/Kyle/Documents/BQ_validation,target=/data/BQ_validation,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false
+      }
+    }
+  },
+  "remoteUser": "root"
+}

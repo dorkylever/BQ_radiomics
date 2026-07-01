@@ -1,0 +1,6 @@
+{
+  // Point the r-notebook extension at the apt-installed R in the container
+  // (r-base-core lands in /usr/bin), so it never falls back to a missing
+  // "Rscript" on PATH (the cause of the EPIPE error). No conda.
+  "rNotebook.r.rPath": "/usr/bin/Rscript"
+}
